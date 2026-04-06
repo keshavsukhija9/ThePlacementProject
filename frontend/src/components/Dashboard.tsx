@@ -4,6 +4,7 @@ import { Check, Clock } from "lucide-react";
 import { useState } from "react";
 
 type ScheduleItem = {
+  id?: string;
   day_index: number;
   time_slot: string;
   topic: string;
@@ -26,7 +27,7 @@ export default function Dashboard({ schedule }: { schedule: { items: ScheduleIte
       await fetch("http://localhost:8000/api/v1/progress/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ item_id: "mock-id", status: newStatus })
+        body: JSON.stringify({ item_id: newItems[idx].id || "mock-id", status: newStatus })
       });
     } catch (e) {
        console.error("Failed to update progress", e);

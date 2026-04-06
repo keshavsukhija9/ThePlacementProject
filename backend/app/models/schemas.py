@@ -10,6 +10,7 @@ class ScheduleGenerateRequest(BaseModel):
     skill_levels: Dict[str, str]
 
 class ScheduleItem(BaseModel):
+    id: Optional[str] = None
     day_index: int
     time_slot: str
     topic: str
