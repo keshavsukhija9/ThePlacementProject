@@ -6,9 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
+import Dashboard from "./Dashboard";
+import Loader from "./Loader";
 
 const onboardingSchema = z.object({
-  collegeTier: z.enum(["Tier-1", "Tier-2", "Tier-3"], { required_error: "College Tier is required" }),
+  collegeTier: z.enum(["Tier-1", "Tier-2", "Tier-3"]),
   branch: z.string().min(1, "Branch is required"),
   gradYear: z.string().min(4, "Graduation Year is required"),
   targetRoles: z.array(z.string()).min(1, "Select at least one role"),
@@ -40,9 +42,30 @@ export default function Onboarding() {
     }
   });
 
-  const onSubmit = (data: OnboardingData) => {
-    console.log("Submitting Onboarding Data", data);
-    // TODO: Phase 4 API integration
+  const [schedule, setSchedule] = useState<{items: any[]} | null>(null);
+  const [showLoader, setShowLoader] = useState(false);
+
+  const onSubmit = async (data: OnboardingData) => {
+    setShowLoader(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/schedule/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+           college_tier: data.collegeTier,
+           target_roles: data.targetRoles,
+           weekday_hrs: data.weekdayHrs,
+           weekend_hrs: data.weekendHrs,
+           preferred_windows: data.preferredWindows,
+           skill_levels: data.skillLevels
+        })
+      });
+      const json = await res.json();
+      setSchedule(json);
+    } catch (e) {
+      console.error(e);
+      setSchedule({ items: [] });
+    }
   };
 
   const nextStep = () => setStep((s) => Math.min(s + 1, 5));
@@ -50,19 +73,33 @@ export default function Onboarding() {
   
   const variants = {
     initial: { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" } },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" as const } },
     exit: { opacity: 0, y: -12, transition: { duration: 0.2 } }
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto p-4 sm:p-0 mt-12 pb-24">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="w-full mx-auto p-4 sm:p-0 mt-8 pb-24">
+      {showLoader ? (
+         <AnimatePresence mode="wait">
+            {!schedule ? (
+              <Loader isDataReady={false} onComplete={() => {}} />
+            ) : (
+              <Loader isDataReady={true} onComplete={() => setShowLoader(false)} />
+            )}
+         </AnimatePresence>
+      ) : schedule ? (
+         <div className="w-full animate-in fade-in zoom-in duration-300">
+           <Dashboard schedule={schedule} />
+         </div>
+      ) : (
+      <>
+      <div className="mb-8 flex justify-between items-center max-w-lg mx-auto">
         <h1 className="text-h2 font-medium">Step {step} of 5</h1>
         <div className="text-secondary text-small">{Math.round((step / 5) * 100)}% Completed</div>
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div key={step} variants={variants} initial="initial" animate="animate" exit="exit" className="card p-6">
+        <motion.div key={step} variants={variants} initial="initial" animate="animate" exit="exit" className="card p-6 max-w-lg mx-auto">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             
             {step === 1 && (
@@ -216,6 +253,8 @@ export default function Onboarding() {
           </form>
         </motion.div>
       </AnimatePresence>
+      </>
+      )}
     </div>
   );
 }
