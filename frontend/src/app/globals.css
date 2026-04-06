@@ -23,3 +23,16 @@
     @apply border-error focus:ring-error;
   }
 }
+
+@layer utilities {
+  .ghost-border {
+    border: 1px solid rgba(144, 143, 160, 0.15);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
