@@ -5,227 +5,347 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check } from "lucide-react";
-import Dashboard from "./Dashboard";
+import { Check, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { saveProfile, generateSchedule } from "@/lib/api";
+import { useStore } from "@/lib/store";
+import { useToast } from "@/components/ui/Toast";
 import Loader from "./Loader";
 
+// ── Schema ────────────────────────────────────────────────────────────────────
+
 const onboardingSchema = z.object({
-  collegeTier: z.enum(["Tier-1", "Tier-2", "Tier-3"]),
-  branch: z.string().min(1, "Branch is required"),
-  gradYear: z.string().min(4, "Graduation Year is required"),
-  targetRoles: z.array(z.string()).min(1, "Select at least one role"),
-  weekdayHrs: z.number().min(1).max(8),
-  weekendHrs: z.number().min(1).max(10),
+  collegeTier:      z.enum(["Tier-1", "Tier-2", "Tier-3"], { required_error: "Select a tier" }),
+  branch:           z.string().min(1, "Branch is required"),
+  gradYear:         z.coerce.number().int().min(2020).max(2030),
+  targetRoles:      z.array(z.string()).min(1, "Select at least one role"),
+  weekdayHrs:       z.coerce.number().int().min(1, "At least 1 hr").max(8, "Max 8 hrs"),
+  weekendHrs:       z.coerce.number().int().min(1, "At least 1 hr").max(10, "Max 10 hrs"),
   preferredWindows: z.array(z.string()).min(1, "Select at least one window"),
   skillLevels: z.object({
-    dsa: z.enum(["Beginner", "Intermediate", "Advanced"]),
-    web: z.enum(["Beginner", "Intermediate", "Advanced"]),
+    dsa:      z.enum(["Beginner", "Intermediate", "Advanced"]),
+    web:      z.enum(["Beginner", "Intermediate", "Advanced"]),
     aptitude: z.enum(["Beginner", "Intermediate", "Advanced"]),
-  })
+  }),
 });
 
 type OnboardingData = z.infer<typeof onboardingSchema>;
 
-const ROLES = ["SDE", "Data Engineer", "Core", "Startup", "Quant", "Other"];
-const WINDOWS = ["Morning", "Afternoon", "Evening", "Night"];
-const SKILLS = ["Beginner", "Intermediate", "Advanced"] as const;
+const ROLES   = ["SDE", "Data Engineer", "Core", "Startup", "Quant", "Other"];
+const WINDOWS = ["Morning", "Afternoon", "Evening", "Night"] as const;
+const SKILLS  = ["Beginner", "Intermediate", "Advanced"] as const;
+
+const STEP_FIELDS: Record<number, (keyof OnboardingData)[]> = {
+  1: ["collegeTier"],
+  2: ["branch", "gradYear"],
+  3: ["targetRoles"],
+  4: ["weekdayHrs", "weekendHrs", "preferredWindows"],
+};
+
+const variants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" as const } },
+  exit:    { opacity: 0, y: -12, transition: { duration: 0.15 } },
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Onboarding() {
-  const [step, setStep] = useState(1);
-  
-  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<OnboardingData>({
+  const router      = useRouter();
+  const toast       = useToast();
+  const setSchedule = useStore((s) => s.setSchedule);
+  const setProfile  = useStore((s) => s.setProfile);
+
+  const [step, setStep]           = useState(1);
+  const [showLoader, setShowLoader] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+
+  const {
+    register, handleSubmit, formState: { errors }, watch, setValue, trigger,
+  } = useForm<OnboardingData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
-      targetRoles: [],
+      targetRoles:      [],
       preferredWindows: [],
-      skillLevels: { dsa: "Beginner", web: "Beginner", aptitude: "Beginner" }
-    }
+      skillLevels:      { dsa: "Beginner", web: "Beginner", aptitude: "Beginner" },
+    },
   });
 
-  const [schedule, setSchedule] = useState<{items: any[]} | null>(null);
-  const [showLoader, setShowLoader] = useState(false);
+  // ── Step navigation with per-step validation ──────────────────────────────
+
+  const nextStep = async () => {
+    const fields = STEP_FIELDS[step];
+    if (fields) {
+      const valid = await trigger(fields);
+      if (!valid) return;
+    }
+    setStep((s) => Math.min(s + 1, 5));
+  };
+
+  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
 
   const onSubmit = async (data: OnboardingData) => {
+    setError(null);
     setShowLoader(true);
+    setIsDataReady(false);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.replace("/auth");
+      return;
+    }
+
+    const token = session.access_token;
+
+    const profilePayload = {
+      college_tier:      data.collegeTier,
+      branch:            data.branch,
+      grad_year:         data.gradYear,
+      target_roles:      data.targetRoles,
+      weekday_hrs:       data.weekdayHrs,
+      weekend_hrs:       data.weekendHrs,
+      preferred_windows: data.preferredWindows,
+      skill_levels:      {
+        dsa:      data.skillLevels.dsa.toLowerCase(),
+        web:      data.skillLevels.web.toLowerCase(),
+        aptitude: data.skillLevels.aptitude.toLowerCase(),
+      },
+    };
+
+    const schedulePayload = {
+      college_tier:      data.collegeTier,
+      target_roles:      data.targetRoles,
+      weekday_hrs:       data.weekdayHrs,
+      weekend_hrs:       data.weekendHrs,
+      preferred_windows: data.preferredWindows,
+      skill_levels:      profilePayload.skill_levels,
+    };
+
     try {
-      const res = await fetch("http://localhost:8000/api/v1/schedule/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-           college_tier: data.collegeTier,
-           target_roles: data.targetRoles,
-           weekday_hrs: data.weekdayHrs,
-           weekend_hrs: data.weekendHrs,
-           preferred_windows: data.preferredWindows,
-           skill_levels: data.skillLevels
-        })
-      });
-      const json = await res.json();
-      setSchedule(json);
-    } catch (e) {
-      console.error(e);
-      setSchedule({ items: [] });
+      const [profile, schedule] = await Promise.all([
+        saveProfile(token, profilePayload),
+        generateSchedule(token, schedulePayload),
+      ]);
+      setProfile(profile);
+      setSchedule(schedule);
+      setIsDataReady(true);
+    } catch (err: any) {
+      setShowLoader(false);
+      setError(err.message || "Something went wrong. Please try again.");
+      toast.error(err.message || "Failed to generate your schedule");
     }
   };
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, 5));
-  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
-  
-  const variants = {
-    initial: { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" as const } },
-    exit: { opacity: 0, y: -12, transition: { duration: 0.2 } }
-  };
+  // ── Loader transition ─────────────────────────────────────────────────────
+
+  if (showLoader) {
+    return (
+      <AnimatePresence mode="wait">
+        <Loader
+          key="loader"
+          isDataReady={isDataReady}
+          onComplete={() => router.push("/dashboard")}
+        />
+      </AnimatePresence>
+    );
+  }
+
+  // ── Form ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full mx-auto p-4 sm:p-0 mt-8 pb-24">
-      {showLoader ? (
-         <AnimatePresence mode="wait">
-            {!schedule ? (
-              <Loader isDataReady={false} onComplete={() => {}} />
-            ) : (
-              <Loader isDataReady={true} onComplete={() => setShowLoader(false)} />
-            )}
-         </AnimatePresence>
-      ) : schedule ? (
-         <div className="w-full animate-in fade-in zoom-in duration-300">
-           <Dashboard schedule={schedule} />
-         </div>
-      ) : (
-      <>
-      <div className="mb-8 flex justify-between items-center max-w-lg mx-auto">
+    <div className="w-full max-w-lg mx-auto">
+      {/* Progress header */}
+      <div className="mb-8 flex justify-between items-center">
         <h1 className="text-h2 font-medium">Step {step} of 5</h1>
-        <div className="text-secondary text-small">{Math.round((step / 5) * 100)}% Completed</div>
+        <div className="flex items-center gap-3">
+          <div className="w-32 h-1 bg-border rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              animate={{ width: `${(step / 5) * 100}%` }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            />
+          </div>
+          <span className="text-on-surface-variant text-small">{Math.round((step / 5) * 100)}%</span>
+        </div>
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 flex items-start gap-3 p-4 rounded-card border border-error/30 bg-error/5 text-error text-small">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" strokeWidth={1.5} />
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto text-error/60 hover:text-error">
+            <RefreshCw size={14} strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
-        <motion.div key={step} variants={variants} initial="initial" animate="animate" exit="exit" className="card p-6 max-w-lg mx-auto">
+        <motion.div
+          key={step}
+          variants={variants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="card p-6"
+        >
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            
+            {/* ── Step 1: College Tier ── */}
             {step === 1 && (
               <div className="space-y-4">
-                <h2 className="text-h1">Where are you studying?</h2>
-                <div className="flex flex-col gap-2">
-                  <label className="text-small text-secondary">College Tier</label>
-                  <select {...register("collegeTier")} className="input bg-surface">
-                    <option value="">Select Tier</option>
-                    <option value="Tier-1">Tier-1</option>
-                    <option value="Tier-2">Tier-2</option>
-                    <option value="Tier-3">Tier-3</option>
+                <div>
+                  <h2 className="text-h1 mb-1">Where are you studying?</h2>
+                  <p className="text-small text-on-surface-variant">This determines topic difficulty and priority.</p>
+                </div>
+                <div>
+                  <label className="label" htmlFor="collegeTier">College Tier</label>
+                  <select {...register("collegeTier")} id="collegeTier" className="input bg-surface">
+                    <option value="">Select your tier</option>
+                    <option value="Tier-1">Tier-1 (IIT, NIT, BITS, etc.)</option>
+                    <option value="Tier-2">Tier-2 (State engineering colleges)</option>
+                    <option value="Tier-3">Tier-3 (Private / local colleges)</option>
                   </select>
-                  {errors.collegeTier && <span className="text-error text-small">{errors.collegeTier.message}</span>}
+                  {errors.collegeTier && (
+                    <p className="text-error text-small mt-1">{errors.collegeTier.message}</p>
+                  )}
                 </div>
               </div>
             )}
 
+            {/* ── Step 2: Branch & Year ── */}
             {step === 2 && (
               <div className="space-y-4">
-                <h2 className="text-h1">Degree details</h2>
-                <div className="flex flex-col gap-2">
-                  <label className="text-small text-secondary">Branch</label>
-                  <input type="text" {...register("branch")} placeholder="e.g. Computer Science" className="input" />
-                  {errors.branch && <span className="text-error text-small">{errors.branch.message}</span>}
+                <h2 className="text-h1">Your degree details</h2>
+                <div>
+                  <label className="label" htmlFor="branch">Branch</label>
+                  <input
+                    id="branch"
+                    type="text"
+                    {...register("branch")}
+                    placeholder="e.g. Computer Science & Engineering"
+                    className="input"
+                  />
+                  {errors.branch && <p className="text-error text-small mt-1">{errors.branch.message}</p>}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-small text-secondary">Graduation Year</label>
-                  <select {...register("gradYear")} className="input bg-surface">
-                    <option value="">Select Year</option>
-                    <option value="2024">2024</option>
-                    <option value="2025">2025</option>
-                    <option value="2026">2026</option>
-                    <option value="2027">2027</option>
+                <div>
+                  <label className="label" htmlFor="gradYear">Graduation Year</label>
+                  <select {...register("gradYear")} id="gradYear" className="input bg-surface">
+                    <option value="">Select year</option>
+                    {[2024, 2025, 2026, 2027, 2028].map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
                   </select>
-                  {errors.gradYear && <span className="text-error text-small">{errors.gradYear.message}</span>}
+                  {errors.gradYear && <p className="text-error text-small mt-1">{errors.gradYear.message}</p>}
                 </div>
               </div>
             )}
 
+            {/* ── Step 3: Target Roles ── */}
             {step === 3 && (
               <div className="space-y-4">
-                <h2 className="text-h1">Target Roles</h2>
+                <div>
+                  <h2 className="text-h1 mb-1">Target Roles</h2>
+                  <p className="text-small text-on-surface-variant">Select all that apply — your plan blends them.</p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {ROLES.map(role => {
-                    const isSelected = watch("targetRoles").includes(role);
+                  {ROLES.map((role) => {
+                    const selected = watch("targetRoles").includes(role);
                     return (
                       <button
-                        type="button"
                         key={role}
+                        type="button"
                         onClick={() => {
-                          const current = watch("targetRoles");
-                          setValue("targetRoles", isSelected ? current.filter(r => r !== role) : [...current, role]);
+                          const cur = watch("targetRoles");
+                          setValue("targetRoles", selected ? cur.filter((r) => r !== role) : [...cur, role]);
                         }}
-                        className={`card p-4 text-left flex justify-between items-center transition-all ${isSelected ? 'border-accent bg-border/20' : ''}`}
+                        className={`card p-4 text-left flex justify-between items-center transition-all ${
+                          selected ? "border-primary bg-primary/5" : ""
+                        }`}
                       >
                         <span className="text-body">{role}</span>
-                        {isSelected && <Check className="text-accent" size={18} />}
+                        {selected && <Check size={16} className="text-primary shrink-0" strokeWidth={2} />}
                       </button>
-                    )
+                    );
                   })}
                 </div>
-                {errors.targetRoles && <span className="text-error text-small">{errors.targetRoles.message}</span>}
+                {errors.targetRoles && (
+                  <p className="text-error text-small">{errors.targetRoles.message}</p>
+                )}
               </div>
             )}
 
+            {/* ── Step 4: Availability ── */}
             {step === 4 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <h2 className="text-h1">Weekly Availability</h2>
-                <div className="flex gap-4">
-                  <div className="flex flex-col gap-2 w-1/2">
-                    <label className="text-small text-secondary">Weekday Hrs/Day</label>
-                    <input type="number" {...register("weekdayHrs", { valueAsNumber: true })} className="input" />
-                    {errors.weekdayHrs && <span className="text-error text-small">{errors.weekdayHrs.message}</span>}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label" htmlFor="weekdayHrs">Weekday hrs/day</label>
+                    <input id="weekdayHrs" type="number" min={1} max={8} {...register("weekdayHrs")} className="input" placeholder="1–8" />
+                    {errors.weekdayHrs && <p className="text-error text-small mt-1">{errors.weekdayHrs.message}</p>}
                   </div>
-                  <div className="flex flex-col gap-2 w-1/2">
-                    <label className="text-small text-secondary">Weekend Hrs/Day</label>
-                    <input type="number" {...register("weekendHrs", { valueAsNumber: true })} className="input" />
-                    {errors.weekendHrs && <span className="text-error text-small">{errors.weekendHrs.message}</span>}
+                  <div>
+                    <label className="label" htmlFor="weekendHrs">Weekend hrs/day</label>
+                    <input id="weekendHrs" type="number" min={1} max={10} {...register("weekendHrs")} className="input" placeholder="1–10" />
+                    {errors.weekendHrs && <p className="text-error text-small mt-1">{errors.weekendHrs.message}</p>}
                   </div>
                 </div>
-                
-                <div className="pt-2 flex flex-col gap-2">
-                  <label className="text-small text-secondary">Preferred Windows</label>
+                <div>
+                  <label className="label">Preferred study windows</label>
                   <div className="flex flex-wrap gap-2">
-                    {WINDOWS.map(win => {
-                      const isSelected = watch("preferredWindows").includes(win);
+                    {WINDOWS.map((win) => {
+                      const selected = watch("preferredWindows").includes(win);
                       return (
                         <button
-                          type="button"
                           key={win}
+                          type="button"
                           onClick={() => {
-                            const current = watch("preferredWindows");
-                            setValue("preferredWindows", isSelected ? current.filter(w => w !== win) : [...current, win]);
+                            const cur = watch("preferredWindows");
+                            setValue("preferredWindows", selected ? cur.filter((w) => w !== win) : [...cur, win]);
                           }}
-                          className={`card px-4 py-2 text-small transition-all ${isSelected ? 'border-accent bg-border/20 text-accent' : ''}`}
+                          className={`card px-4 py-2 text-small transition-all ${selected ? "border-primary bg-primary/5 text-primary" : ""}`}
                         >
                           {win}
                         </button>
-                      )
+                      );
                     })}
                   </div>
-                  {errors.preferredWindows && <span className="text-error text-small">{errors.preferredWindows.message}</span>}
+                  {errors.preferredWindows && (
+                    <p className="text-error text-small mt-1">{errors.preferredWindows.message}</p>
+                  )}
                 </div>
               </div>
             )}
 
+            {/* ── Step 5: Skill Baseline ── */}
             {step === 5 && (
-              <div className="space-y-6">
-                <h2 className="text-h1">Current Skill Baseline</h2>
-                {["dsa", "web", "aptitude"].map((skill) => (
-                  <div key={skill} className="flex flex-col gap-2">
-                    <label className="text-small text-secondary uppercase tracking-wider">{skill}</label>
+              <div className="space-y-5">
+                <div>
+                  <h2 className="text-h1 mb-1">Current Skill Baseline</h2>
+                  <p className="text-small text-on-surface-variant">Be honest — this calibrates your difficulty level.</p>
+                </div>
+                {(["dsa", "web", "aptitude"] as const).map((skill) => (
+                  <div key={skill}>
+                    <label className="label uppercase tracking-wider">{skill}</label>
                     <div className="flex gap-2">
-                      {SKILLS.map(level => {
-                        const isSelected = watch(`skillLevels.${skill as 'dsa'|'web'|'aptitude'}`) === level;
+                      {SKILLS.map((level) => {
+                        const selected = watch(`skillLevels.${skill}`) === level;
                         return (
                           <button
-                            type="button"
                             key={level}
-                            onClick={() => setValue(`skillLevels.${skill as 'dsa'|'web'|'aptitude'}`, level)}
-                            className={`card flex-1 py-3 text-center text-small transition-all ${isSelected ? 'border-accent bg-border/20 text-accent' : ''}`}
+                            type="button"
+                            onClick={() => setValue(`skillLevels.${skill}`, level)}
+                            className={`card flex-1 py-3 text-center text-small transition-all ${
+                              selected ? "border-primary bg-primary/5 text-primary font-medium" : ""
+                            }`}
                           >
                             {level}
                           </button>
-                        )
+                        );
                       })}
                     </div>
                   </div>
@@ -233,28 +353,27 @@ export default function Onboarding() {
               </div>
             )}
 
-            <div className="flex justify-between pt-4 mt-6 border-t border-border">
+            {/* ── Navigation ── */}
+            <div className="flex justify-between items-center pt-4 border-t border-border">
               {step > 1 ? (
-                <button type="button" onClick={prevStep} className="text-secondary hover:text-primary transition-colors text-body px-4 py-2">
-                  Back
+                <button type="button" onClick={prevStep} className="btn-ghost">
+                  ← Back
                 </button>
-              ) : <div></div>}
-              
+              ) : <div />}
+
               {step < 5 ? (
                 <button type="button" onClick={nextStep} className="btn">
-                  Continue
+                  Continue →
                 </button>
               ) : (
-                <button type="submit" className="btn">
-                  Generate Plan
+                <button type="submit" className="btn flex items-center gap-2">
+                  Generate My Plan
                 </button>
               )}
             </div>
           </form>
         </motion.div>
       </AnimatePresence>
-      </>
-      )}
     </div>
   );
 }

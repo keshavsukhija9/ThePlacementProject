@@ -1,0 +1,86 @@
+{
+  "SDE": [
+    {"topic": "Arrays & Hashing", "difficulty": "easy", "resource_url": "https://neetcode.io/problems/contains-duplicate"},
+    {"topic": "Two Pointers", "difficulty": "easy", "resource_url": "https://neetcode.io/problems/two-integer-sum-ii"},
+    {"topic": "Sliding Window", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/longest-substring-without-duplicates"},
+    {"topic": "Stack & Queues", "difficulty": "easy", "resource_url": "https://neetcode.io/problems/valid-parentheses"},
+    {"topic": "Binary Search", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/binary-search"},
+    {"topic": "Linked Lists: Basics", "difficulty": "easy", "resource_url": "https://neetcode.io/problems/reverse-a-linked-list"},
+    {"topic": "Linked Lists: Fast & Slow Pointers", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/linked-list-cycle-detection"},
+    {"topic": "Trees: Traversal (DFS/BFS)", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/invert-a-binary-tree"},
+    {"topic": "Trees: BST & Validation", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/valid-binary-search-tree"},
+    {"topic": "Heap & Priority Queue", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/kth-largest-element-in-a-stream"},
+    {"topic": "Backtracking: Subsets & Combinations", "difficulty": "hard", "resource_url": "https://neetcode.io/problems/subsets"},
+    {"topic": "Graphs: BFS & DFS", "difficulty": "hard", "resource_url": "https://neetcode.io/problems/number-of-islands"},
+    {"topic": "Graphs: Shortest Path (Dijkstra)", "difficulty": "hard", "resource_url": "https://neetcode.io/problems/shortest-path-with-obstacles"},
+    {"topic": "Dynamic Programming: 1D (Fibonacci Pattern)", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/climbing-stairs"},
+    {"topic": "Dynamic Programming: 2D (Grid)", "difficulty": "hard", "resource_url": "https://neetcode.io/problems/unique-paths"},
+    {"topic": "Tries & String Algorithms", "difficulty": "hard", "resource_url": "https://neetcode.io/problems/implement-trie-prefix-tree"},
+    {"topic": "Greedy Algorithms", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/jump-game"},
+    {"topic": "Bit Manipulation", "difficulty": "medium", "resource_url": "https://neetcode.io/problems/single-number"},
+    {"topic": "System Design: Fundamentals", "difficulty": "hard", "resource_url": "https://www.youtube.com/watch?v=i53Gi_K3o7I"},
+    {"topic": "OOP & SOLID Principles", "difficulty": "medium", "resource_url": "https://refactoring.guru/design-patterns"}
+  ],
+  "Data Engineer": [
+    {"topic": "SQL: SELECT, WHERE, JOINs", "difficulty": "easy", "resource_url": "https://sqlzoo.net/wiki/SQL_Tutorial"},
+    {"topic": "SQL: Window Functions & CTEs", "difficulty": "medium", "resource_url": "https://mode.com/sql-tutorial/sql-window-functions/"},
+    {"topic": "SQL: Query Optimization & Indexes", "difficulty": "hard", "resource_url": "https://use-the-index-luke.com/"},
+    {"topic": "Python for Data: Pandas Basics", "difficulty": "easy", "resource_url": "https://www.kaggle.com/learn/pandas"},
+    {"topic": "Python for Data: Pandas Advanced (GroupBy, Merge)", "difficulty": "medium", "resource_url": "https://realpython.com/pandas-groupby/"},
+    {"topic": "ETL Concepts & Pipeline Design", "difficulty": "medium", "resource_url": "https://www.databricks.com/glossary/etl-pipeline"},
+    {"topic": "Data Warehousing: Star vs Snowflake Schema", "difficulty": "medium", "resource_url": "https://www.guru99.com/data-warehousing.html"},
+    {"topic": "Apache Spark: RDDs & DataFrames", "difficulty": "hard", "resource_url": "https://spark.apache.org/docs/latest/quick-start.html"},
+    {"topic": "Kafka & Streaming Concepts", "difficulty": "hard", "resource_url": "https://kafka.apache.org/documentation/"},
+    {"topic": "Data Modeling & Normalization", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/database-normalization-normal-forms/"},
+    {"topic": "Statistics: Distributions & Hypothesis Testing", "difficulty": "medium", "resource_url": "https://www.khanacademy.org/math/statistics-probability"},
+    {"topic": "Cloud Data Services (AWS S3, Glue, Redshift)", "difficulty": "medium", "resource_url": "https://aws.amazon.com/big-data/datalakes-and-analytics/"}
+  ],
+  "Aptitude": [
+    {"topic": "Number Systems & Divisibility Rules", "difficulty": "easy", "resource_url": "https://www.indiabix.com/aptitude/numbers/"},
+    {"topic": "Percentages", "difficulty": "easy", "resource_url": "https://www.indiabix.com/aptitude/percentage/"},
+    {"topic": "Ratios & Proportions", "difficulty": "easy", "resource_url": "https://www.indiabix.com/aptitude/ratio-and-proportion/"},
+    {"topic": "Time & Work", "difficulty": "medium", "resource_url": "https://www.indiabix.com/aptitude/time-and-work/"},
+    {"topic": "Speed, Distance & Time", "difficulty": "medium", "resource_url": "https://www.indiabix.com/aptitude/time-and-distance/"},
+    {"topic": "Profit & Loss", "difficulty": "easy", "resource_url": "https://www.indiabix.com/aptitude/profit-and-loss/"},
+    {"topic": "Permutations & Combinations", "difficulty": "medium", "resource_url": "https://www.indiabix.com/aptitude/permutation-and-combination/"},
+    {"topic": "Probability", "difficulty": "medium", "resource_url": "https://www.indiabix.com/aptitude/probability/"},
+    {"topic": "Data Interpretation: Bar & Line Charts", "difficulty": "medium", "resource_url": "https://www.indiabix.com/data-interpretation/bar-charts/"},
+    {"topic": "Logical Reasoning: Syllogisms", "difficulty": "medium", "resource_url": "https://www.indiabix.com/logical-reasoning/syllogism/"},
+    {"topic": "Logical Reasoning: Critical Thinking", "difficulty": "hard", "resource_url": "https://www.indiabix.com/logical-reasoning/blood-relation-test/"},
+    {"topic": "Verbal Ability: Reading Comprehension", "difficulty": "medium", "resource_url": "https://www.indiabix.com/verbal-ability/comprehension/"}
+  ],
+  "Core": [
+    {"topic": "Operating Systems: Processes & Threads", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/operating-systems/"},
+    {"topic": "OS: Memory Management & Virtual Memory", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/memory-management-in-operating-system/"},
+    {"topic": "OS: CPU Scheduling Algorithms", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/cpu-scheduling-in-operating-systems/"},
+    {"topic": "Computer Networks: OSI Model & TCP/IP", "difficulty": "easy", "resource_url": "https://www.geeksforgeeks.org/computer-network-tutorials/"},
+    {"topic": "Networks: TCP vs UDP, HTTP, DNS", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/differences-between-tcp-and-udp/"},
+    {"topic": "DBMS: Normalization, ACID & Transactions", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/database-management-system/"},
+    {"topic": "DBMS: Indexing & Query Optimization", "difficulty": "hard", "resource_url": "https://www.geeksforgeeks.org/indexing-in-databases/"},
+    {"topic": "Computer Architecture: CPU, Cache & Pipelining", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/computer-organization-and-architecture-tutorials/"}
+  ],
+  "Startup": [
+    {"topic": "System Design: Scalability & Load Balancing", "difficulty": "medium", "resource_url": "https://github.com/donnemartin/system-design-primer"},
+    {"topic": "REST API Design Best Practices", "difficulty": "easy", "resource_url": "https://restfulapi.net/"},
+    {"topic": "Product Thinking & PM Fundamentals", "difficulty": "medium", "resource_url": "https://www.productplan.com/learn/product-thinking/"},
+    {"topic": "React Fundamentals & Hooks", "difficulty": "medium", "resource_url": "https://react.dev/learn"},
+    {"topic": "Backend APIs: FastAPI / Node.js", "difficulty": "medium", "resource_url": "https://fastapi.tiangolo.com/tutorial/"},
+    {"topic": "DevOps: Docker & CI/CD Basics", "difficulty": "hard", "resource_url": "https://docs.docker.com/get-started/"},
+    {"topic": "Databases: SQL vs NoSQL Trade-offs", "difficulty": "medium", "resource_url": "https://www.mongodb.com/nosql-explained/nosql-vs-sql"}
+  ],
+  "Quant": [
+    {"topic": "Probability: Conditional & Bayes Theorem", "difficulty": "hard", "resource_url": "https://www.khanacademy.org/math/statistics-probability"},
+    {"topic": "Statistics: Distributions & Central Limit Theorem", "difficulty": "hard", "resource_url": "https://www.khanacademy.org/math/statistics-probability/sampling-distributions-library"},
+    {"topic": "Linear Algebra: Matrices & Eigenvalues", "difficulty": "hard", "resource_url": "https://www.3blue1brown.com/topics/linear-algebra"},
+    {"topic": "Brain Teasers & Classic Puzzles", "difficulty": "medium", "resource_url": "https://www.geeksforgeeks.org/puzzles/"},
+    {"topic": "Combinatorics & Counting Principles", "difficulty": "hard", "resource_url": "https://brilliant.org/courses/combinatorics/"},
+    {"topic": "Financial Math: Time Value of Money", "difficulty": "medium", "resource_url": "https://www.investopedia.com/terms/t/timevalueofmoney.asp"},
+    {"topic": "Number Theory & Mathematical Reasoning", "difficulty": "medium", "resource_url": "https://brilliant.org/courses/number-theory/"}
+  ],
+  "Other": [
+    {"topic": "Resume Building & LinkedIn Optimization", "difficulty": "easy", "resource_url": "https://www.geeksforgeeks.org/resume-building-for-software-engineers/"},
+    {"topic": "Interview Communication & STAR Method", "difficulty": "easy", "resource_url": "https://www.indeed.com/career-advice/interviewing/how-to-use-the-star-interview-response-technique"},
+    {"topic": "Behavioural Interview Questions", "difficulty": "easy", "resource_url": "https://www.indiabix.com/hr-interview/questions-and-answers/"},
+    {"topic": "Aptitude Speed Tests & Mock Practice", "difficulty": "medium", "resource_url": "https://www.indiabix.com/online-test/aptitude-test/"}
+  ]
+}

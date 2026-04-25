@@ -1,36 +1,44 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import ToastContainer from "@/components/ui/Toast";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Precision Editorial | ThePlacementProject",
-  description: "Placement prep that fits your life.",
+  title: "ThePlacementProject — Placement prep that fits your life",
+  description:
+    "Replace chaotic study plans with a deterministic, timetable-aware navigation engine. Get a realistic weekly schedule, track your streak, and go Pro for ₹29/month.",
+  keywords: ["placement prep", "campus placements", "DSA study plan", "engineering jobs India"],
+  authors: [{ name: "ThePlacementProject" }],
+  openGraph: {
+    title: "ThePlacementProject",
+    description: "Placement prep that fits your life. Not the other way around.",
+    type: "website",
+  },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
+        {/* Preconnect for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-surface-container-lowest text-on-surface`}>
+      <body className="font-sans antialiased bg-background text-on-surface">
         {children}
+        <ToastContainer />
       </body>
     </html>
   );
