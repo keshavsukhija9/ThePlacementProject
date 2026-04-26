@@ -226,6 +226,35 @@ export default function Dashboard() {
     }
   }, [updateItem, setStreak, setReadiness, toast]);
 
+  // ── Reschedule ────────────────────────────────────────────────────────────
+  const handleReschedule = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { router.push("/auth"); return; }
+    
+    if (!confirm("Reschedule all tasks for this week? Your current progress will be preserved.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/schedule/reschedule`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) throw new Error("Reschedule failed");
+      
+      const data = await response.json();
+      toast.success("Schedule rescheduled! Refresh to see changes.");
+      // Optionally refresh the page or re-fetch schedule
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reschedule");
+    }
+  };
+
   // ── Go Pro ─────────────────────────────────────────────────────────────────
   const handleUpgrade = async () => {
     setCheckingOut(true);
@@ -318,6 +347,18 @@ export default function Dashboard() {
           <span className="hidden md:block">{timestamp}</span>
           <span className="hidden md:block">{name.toUpperCase()}</span>
 
+          {/* Reschedule button */}
+          {isPro && (
+            <button
+              onClick={handleReschedule}
+              className="btn-mech-ghost"
+              title="Reschedule all tasks for this week"
+              style={{ fontSize: "9px" }}
+            >
+              ↻ RESCHEDULE
+            </button>
+          )}
+
           {/* Rescue mode toggle */}
           <button
             onClick={() => setRescueMode((r) => !r)}
@@ -327,6 +368,7 @@ export default function Dashboard() {
               borderColor: rescueMode ? "var(--c-warn)" : undefined,
               fontSize:    "9px",
             }}
+            title={rescueMode ? "Rescue mode active - catch up on missed tasks" : "Activate rescue mode"}
           >
             {rescueMode ? "⚠ RESCUE:ON" : "RESCUE"}
           </button>
@@ -374,6 +416,35 @@ export default function Dashboard() {
         className={rescueMode ? "rescue-scanline" : ""}
         style={{ maxWidth: "1200px", margin: "0 auto", padding: "72px 24px 80px", position: "relative" }}
       >
+
+        {/* ── Rescue Mode Info ────────────────────────────────────────────────── */}
+        {rescueMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="card-mech"
+            style={{
+              padding:      "16px",
+              borderColor:  "var(--c-warn)",
+              background:   "rgba(245,158,11,0.05)",
+              marginBottom: "24px",
+            }}
+          >
+            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "18px", marginTop: "2px" }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <p className="label-mech" style={{ color: "var(--c-warn)", marginBottom: "4px" }}>
+                  RESCUE MODE ACTIVE
+                </p>
+                <p style={{ fontSize: "13px", lineHeight: 1.5, color: "var(--c-txt)" }}>
+                  You're in catch-up mode. Focus on high-priority tasks. Your streak is paused, but you can still earn readiness points. 
+                  Complete tasks to exit rescue mode.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* ── Status Row ─────────────────────────────────────────────────────── */}
         <motion.section

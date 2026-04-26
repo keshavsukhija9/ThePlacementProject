@@ -11,6 +11,8 @@ import { supabase } from "@/lib/supabase";
 import { saveProfile, generateSchedule } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
+import { FormInput } from "@/components/ui/FormInput";
+import { FormSelect } from "@/components/ui/FormSelect";
 import Loader from "./Loader";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -201,18 +203,18 @@ export default function Onboarding() {
                   <h2 className="text-h1 mb-1">Where are you studying?</h2>
                   <p className="text-small text-on-surface-variant">This determines topic difficulty and priority.</p>
                 </div>
-                <div>
-                  <label className="label" htmlFor="collegeTier">College Tier</label>
-                  <select {...register("collegeTier")} id="collegeTier" className="input bg-surface">
-                    <option value="">Select your tier</option>
-                    <option value="Tier-1">Tier-1 (IIT, NIT, BITS, etc.)</option>
-                    <option value="Tier-2">Tier-2 (State engineering colleges)</option>
-                    <option value="Tier-3">Tier-3 (Private / local colleges)</option>
-                  </select>
-                  {errors.collegeTier && (
-                    <p className="text-error text-small mt-1">{errors.collegeTier.message}</p>
-                  )}
-                </div>
+                <FormSelect
+                  label="College Tier"
+                  placeholder="Select your tier"
+                  options={[
+                    { value: "Tier-1", label: "Tier-1 (IIT, NIT, BITS, etc.)" },
+                    { value: "Tier-2", label: "Tier-2 (State engineering colleges)" },
+                    { value: "Tier-3", label: "Tier-3 (Private / local colleges)" },
+                  ]}
+                  {...register("collegeTier")}
+                  error={errors.collegeTier?.message}
+                  required
+                />
               </div>
             )}
 
@@ -220,27 +222,24 @@ export default function Onboarding() {
             {step === 2 && (
               <div className="space-y-4">
                 <h2 className="text-h1">Your degree details</h2>
-                <div>
-                  <label className="label" htmlFor="branch">Branch</label>
-                  <input
-                    id="branch"
-                    type="text"
-                    {...register("branch")}
-                    placeholder="e.g. Computer Science & Engineering"
-                    className="input"
-                  />
-                  {errors.branch && <p className="text-error text-small mt-1">{errors.branch.message}</p>}
-                </div>
-                <div>
-                  <label className="label" htmlFor="gradYear">Graduation Year</label>
-                  <select {...register("gradYear")} id="gradYear" className="input bg-surface">
-                    <option value="">Select year</option>
-                    {[2024, 2025, 2026, 2027, 2028].map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
-                  {errors.gradYear && <p className="text-error text-small mt-1">{errors.gradYear.message}</p>}
-                </div>
+                <FormInput
+                  label="Branch"
+                  placeholder="e.g. Computer Science & Engineering"
+                  {...register("branch")}
+                  error={errors.branch?.message}
+                  required
+                />
+                <FormSelect
+                  label="Graduation Year"
+                  placeholder="Select year"
+                  options={[2024, 2025, 2026, 2027, 2028].map((y) => ({
+                    value: y.toString(),
+                    label: y.toString(),
+                  }))}
+                  {...register("gradYear")}
+                  error={errors.gradYear?.message}
+                  required
+                />
               </div>
             )}
 
@@ -283,16 +282,26 @@ export default function Onboarding() {
               <div className="space-y-5">
                 <h2 className="text-h1">Weekly Availability</h2>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label" htmlFor="weekdayHrs">Weekday hrs/day</label>
-                    <input id="weekdayHrs" type="number" min={1} max={8} {...register("weekdayHrs")} className="input" placeholder="1–8" />
-                    {errors.weekdayHrs && <p className="text-error text-small mt-1">{errors.weekdayHrs.message}</p>}
-                  </div>
-                  <div>
-                    <label className="label" htmlFor="weekendHrs">Weekend hrs/day</label>
-                    <input id="weekendHrs" type="number" min={1} max={10} {...register("weekendHrs")} className="input" placeholder="1–10" />
-                    {errors.weekendHrs && <p className="text-error text-small mt-1">{errors.weekendHrs.message}</p>}
-                  </div>
+                  <FormInput
+                    label="Weekday hrs/day"
+                    type="number"
+                    min={1}
+                    max={8}
+                    placeholder="1–8"
+                    {...register("weekdayHrs")}
+                    error={errors.weekdayHrs?.message}
+                    required
+                  />
+                  <FormInput
+                    label="Weekend hrs/day"
+                    type="number"
+                    min={1}
+                    max={10}
+                    placeholder="1–10"
+                    {...register("weekendHrs")}
+                    error={errors.weekendHrs?.message}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="label">Preferred study windows</label>
@@ -308,6 +317,7 @@ export default function Onboarding() {
                             setValue("preferredWindows", selected ? cur.filter((w) => w !== win) : [...cur, win]);
                           }}
                           className={`card px-4 py-2 text-small transition-all ${selected ? "border-primary bg-primary/5 text-primary" : ""}`}
+                          aria-pressed={selected}
                         >
                           {win}
                         </button>

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Mail, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/Toast";
+import { FormInput } from "@/components/ui/FormInput";
 
 export default function AuthPage() {
   const router      = useRouter();
@@ -14,10 +15,23 @@ export default function AuthPage() {
   const [loading, setLoading]     = useState(false);
   const [magicSent, setMagicSent] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    setEmailError(null);
+    
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -30,6 +44,7 @@ export default function AuthPage() {
       setMagicSent(true);
       toast.success("Magic link sent! Check your inbox.");
     } catch (err: any) {
+      setEmailError(err.message || "Failed to send magic link");
       toast.error(err.message || "Failed to send magic link");
     } finally {
       setLoading(false);
@@ -106,29 +121,35 @@ export default function AuthPage() {
           {/* Magic Link */}
           {!magicSent ? (
             <form onSubmit={handleMagicLink} className="flex flex-col gap-4">
-              <div>
-                <label className="label" htmlFor="email">Email address</label>
-                <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" strokeWidth={1.5} />
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@college.edu"
-                    required
-                    className="input pl-9"
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
+              <FormInput
+                label="Email address"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailError(null);
+                }}
+                placeholder="you@college.edu"
+                error={emailError || undefined}
+                required
+                autoComplete="email"
+                aria-label="Email address"
+                aria-describedby="email-hint"
+              />
+              <p id="email-hint" className="text-xs text-on-surface-variant">
+                We'll send you a magic link to sign in
+              </p>
               <button
                 type="submit"
                 disabled={loading || !email}
                 className="btn flex items-center justify-center gap-2"
+                aria-busy={loading}
               >
                 {loading ? (
-                  <Loader2 size={16} className="animate-spin" />
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Sending...
+                  </>
                 ) : (
                   <>Send Magic Link <ArrowRight size={16} /></>
                 )}
@@ -141,8 +162,9 @@ export default function AuthPage() {
                 We sent a login link to <strong className="text-on-surface">{email}</strong>
               </p>
               <button
-                onClick={() => { setMagicSent(false); setEmail(""); }}
+                onClick={() => { setMagicSent(false); setEmail(""); setEmailError(null); }}
                 className="text-primary text-small hover:opacity-80 transition-opacity"
+                aria-label="Use a different email"
               >
                 Use a different email
               </button>
