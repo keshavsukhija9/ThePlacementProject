@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import schedule, payment
-from app.routes import progress, profile
+from app.routes import schedule, payment, progress, profile, reminders
 from app.core.config import settings
 
 app = FastAPI(
@@ -25,10 +24,11 @@ app.add_middleware(
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-app.include_router(schedule.router,  prefix="/api/v1/schedule",  tags=["schedule"])
-app.include_router(progress.router,  prefix="/api/v1/progress",  tags=["progress"])
-app.include_router(payment.router,   prefix="/api/v1/payment",   tags=["payment"])
-app.include_router(profile.router,   prefix="/api/v1/profile",   tags=["profile"])
+app.include_router(schedule.router,   prefix="/api/v1/schedule",   tags=["schedule"])
+app.include_router(progress.router,   prefix="/api/v1/progress",   tags=["progress"])
+app.include_router(payment.router,    prefix="/api/v1/payment",    tags=["payment"])
+app.include_router(profile.router,    prefix="/api/v1/profile",    tags=["profile"])
+app.include_router(reminders.router,  prefix="/api/v1/reminders",  tags=["reminders"])
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

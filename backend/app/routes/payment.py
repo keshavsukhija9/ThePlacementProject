@@ -1,5 +1,7 @@
 import json
-import stripe
+import hmac
+import hashlib
+import requests
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from app.models.schemas import CheckoutCreateResponse, WebhookResponse
@@ -9,127 +11,169 @@ from app.core.db import supabase
 
 router = APIRouter()
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
 
 @router.post("/create-checkout", response_model=CheckoutCreateResponse)
 async def create_checkout(user: dict = Depends(get_current_user)):
     """
-    Create a Stripe Checkout Session for ₹29 Pro upgrade.
+    Create a Swipe Payment Link for ₹29 Pro upgrade.
+    Swipe supports UPI, Cards, and Wallets.
     Returns a URL for the frontend to redirect to.
     """
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "inr",
-                        "unit_amount": 2900,  # ₹29 in paise
-                        "product_data": {
-                            "name": "ThePlacementProject — Pro (1 Month)",
-                            "description": "Smart scheduling, WhatsApp reminders, readiness scoring & more",
-                        },
-                    },
-                    "quantity": 1,
-                }
-            ],
-            mode="payment",
-            client_reference_id=user["id"],  # Used in webhook to identify user
-            success_url=f"{settings.FRONTEND_URL}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{settings.FRONTEND_URL}/dashboard",
-            metadata={"user_id": user["id"], "user_email": user["email"]},
+        # Swipe Payment Link API
+        url = "https://api.swipe.co.in/v1/payment_links"
+        
+        payload = {
+            "amount": 2900,  # ₹29 in paise
+            "currency": "INR",
+            "description": "ThePlacementProject — Pro (1 Month)",
+            "customer": {
+                "email": user["email"],
+                "phone": user.get("phone", ""),
+            },
+            "notes": {
+                "user_id": user["id"],
+                "user_email": user["email"]
+            },
+            "callback_url": f"{settings.FRONTEND_URL}/payment/success",
+            "notify": {
+                "sms": True,
+                "email": True
+            }
+        }
+        
+        response = requests.post(
+            url,
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {settings.SWIPE_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            timeout=10
         )
-        return CheckoutCreateResponse(checkout_url=session.url)
-    except stripe.StripeError as e:
+        
+        if response.status_code not in (200, 201):
+            raise HTTPException(status_code=400, detail="Failed to create payment link")
+        
+        data = response.json()
+        return CheckoutCreateResponse(checkout_url=data["short_url"])
+    except requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Payment service error: {str(e)}")
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/verify/{session_id}")
-async def verify_payment(session_id: str, user: dict = Depends(get_current_user)):
-    """Poll to verify payment status after Stripe redirect."""
+@router.get("/verify/{payment_id}")
+async def verify_payment(payment_id: str, user: dict = Depends(get_current_user)):
+    """Verify payment status after Swipe redirect."""
     try:
-        session = stripe.checkout.Session.retrieve(session_id)
-
-        if session.client_reference_id != user["id"]:
-            raise HTTPException(status_code=403, detail="Session does not belong to this user")
-
-        if session.payment_status == "paid":
+        # Fetch payment details from Swipe
+        url = f"https://api.swipe.co.in/v1/payments/{payment_id}"
+        response = requests.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {settings.SWIPE_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            return {"status": "failed", "is_pro": False}
+        
+        payment = response.json()
+        
+        if payment.get("status") == "completed":
             return {"status": "success", "is_pro": True}
-        elif session.status == "expired":
-            return {"status": "expired", "is_pro": False}
+        elif payment.get("status") == "failed":
+            return {"status": "failed", "is_pro": False}
         else:
             return {"status": "pending", "is_pro": False}
-    except stripe.StripeError as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/webhook", response_model=WebhookResponse)
 async def payment_webhook(req: Request):
     """
-    Stripe webhook — verifies signature and upgrades user to Pro on payment.
-    Set this endpoint in Stripe Dashboard → Webhooks.
-    Event: checkout.session.completed
+    Swipe webhook — verifies signature and upgrades user to Pro on payment.
+    Set this endpoint in Swipe Dashboard → Settings → Webhooks.
+    Event: payment.completed, payment.failed
     """
-    payload = await req.body()
-    sig_header = req.headers.get("stripe-signature", "")
-
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
-    except stripe.errors.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid Stripe signature")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        user_id = session.get("client_reference_id")
-
-        if not user_id:
-            print("[payment] Webhook received but no client_reference_id found")
-            return WebhookResponse(status="ok")
-
-        if session.get("payment_status") == "paid":
+        payload = await req.body()
+        sig_header = req.headers.get("x-swipe-signature", "")
+        
+        # Verify Swipe signature (HMAC-SHA256)
+        expected_signature = hmac.new(
+            settings.SWIPE_WEBHOOK_SECRET.encode(),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        
+        if sig_header != expected_signature:
+            raise HTTPException(status_code=400, detail="Invalid Swipe signature")
+        
+        event = json.loads(payload)
+        event_type = event.get("event")
+        payment_data = event.get("data", {})
+        
+        if event_type == "payment.completed":
+            payment_id = payment_data.get("id")
+            user_id = payment_data.get("notes", {}).get("user_id")
+            user_email = payment_data.get("notes", {}).get("user_email")
+            
+            if not user_id:
+                print("[payment] Webhook received but no user_id in notes")
+                return WebhookResponse(status="ok")
+            
             try:
                 pro_expires = (
                     datetime.now(timezone.utc) + timedelta(days=30)
                 ).isoformat()
-
+                
+                # Update profile to Pro
                 supabase.table("profiles").update(
                     {"is_pro": True, "pro_expires_at": pro_expires}
                 ).eq("user_id", user_id).execute()
-
+                
                 # Log payment
                 supabase.table("payments").insert(
                     {
                         "user_id": user_id,
-                        "stripe_session_id": session["id"],
-                        "amount_paisa": session.get("amount_total", 2900),
-                        "currency": session.get("currency", "inr").upper(),
+                        "swipe_payment_id": payment_id,
+                        "amount_paisa": payment_data.get("amount", 2900),
+                        "currency": payment_data.get("currency", "INR"),
                         "status": "success",
                     }
                 ).execute()
-
-                print(f"[payment] ✅ User {user_id} upgraded to Pro")
+                
+                print(f"[payment] ✅ User {user_id} upgraded to Pro via {payment_id}")
             except Exception as e:
                 print(f"[payment] DB update failed: {e}")
-
-    elif event["type"] in ("payment_intent.payment_failed", "checkout.session.expired"):
-        session = event["data"]["object"]
-        user_id = session.get("client_reference_id") or session.get("metadata", {}).get("user_id")
-        if user_id:
-            try:
-                supabase.table("payments").insert(
-                    {
-                        "user_id": user_id,
-                        "amount_paisa": 2900,
-                        "currency": "INR",
-                        "status": "failed",
-                    }
-                ).execute()
-            except Exception:
-                pass
-
-    return WebhookResponse(status="ok")
+        
+        elif event_type == "payment.failed":
+            payment_id = payment_data.get("id")
+            user_id = payment_data.get("notes", {}).get("user_id")
+            
+            if user_id:
+                try:
+                    supabase.table("payments").insert(
+                        {
+                            "user_id": user_id,
+                            "swipe_payment_id": payment_id,
+                            "amount_paisa": payment_data.get("amount", 2900),
+                            "currency": payment_data.get("currency", "INR"),
+                            "status": "failed",
+                        }
+                    ).execute()
+                except Exception as e:
+                    print(f"[payment] Failed payment log error: {e}")
+        
+        return WebhookResponse(status="ok")
+    
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    except Exception as e:
+        print(f"[payment] Webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))

@@ -12,18 +12,26 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_KEY: str  # Service Role key
 
-    # Stripe — REQUIRED for payment
-    STRIPE_SECRET_KEY: str = "sk_test_placeholder"
-    STRIPE_WEBHOOK_SECRET: str = "whsec_placeholder"
-    STRIPE_PRICE_ID: str = "price_placeholder"
+    # Swipe — REQUIRED for payment (UPI, Cards, Wallets)
+    SWIPE_API_KEY: str
+    SWIPE_WEBHOOK_SECRET: str
 
-    # Telegram — optional for reminders
-    TELEGRAM_BOT_TOKEN: str = ""
+    # Telegram — REQUIRED for reminders
+    TELEGRAM_BOT_TOKEN: str
+
+    # SMS Gateway (Twilio or AWS SNS) — REQUIRED for SMS reminders
+    SMS_PROVIDER: str = "twilio"  # or "aws_sns"
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+    AWS_SNS_REGION: str = ""
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
 
     # App
     FRONTEND_URL: str = "http://localhost:3000"
     ENVIRONMENT: str = "development"
-    CRON_SECRET: str = "change-me"
+    CRON_SECRET: str = "change-me-in-production"
 
 
 settings = Settings()

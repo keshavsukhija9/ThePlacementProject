@@ -1,18 +1,43 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // ms
+
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function authFetch(
   path: string,
   token: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retries = 0
 ): Promise<Response> {
-  return fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+
+    // Retry on network errors or 5xx
+    if (!response.ok && response.status >= 500 && retries < MAX_RETRIES) {
+      await sleep(RETRY_DELAY * (retries + 1));
+      return authFetch(path, token, options, retries + 1);
+    }
+
+    return response;
+  } catch (error) {
+    // Retry on network errors
+    if (retries < MAX_RETRIES) {
+      await sleep(RETRY_DELAY * (retries + 1));
+      return authFetch(path, token, options, retries + 1);
+    }
+    throw error;
+  }
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -57,6 +82,22 @@ export async function getCurrentSchedule(token: string) {
   return res.json();
 }
 
+export async function rescheduleDay(token: string) {
+  const res = await authFetch('/api/v1/schedule/reschedule', token, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to reschedule');
+  return res.json();
+}
+
+export async function activateRescueMode(token: string) {
+  const res = await authFetch('/api/v1/schedule/rescue-mode', token, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to activate rescue mode');
+  return res.json();
+}
+
 // ── Progress ──────────────────────────────────────────────────────────────────
 
 export async function updateProgress(
@@ -82,8 +123,37 @@ export async function createCheckout(token: string) {
   return res.json(); // { checkout_url }
 }
 
-export async function verifyPayment(token: string, sessionId: string) {
-  const res = await authFetch(`/api/v1/payment/verify/${sessionId}`, token);
+export async function verifyPayment(token: string, paymentId: string) {
+  const res = await authFetch(`/api/v1/payment/verify/${paymentId}`, token);
   if (!res.ok) throw new Error('Failed to verify payment');
   return res.json(); // { status, is_pro }
 }
+
+// ── Reminders ─────────────────────────────────────────────────────────────────
+
+export async function subscribeTelegram(token: string, chatId: string) {
+  const res = await authFetch('/api/v1/reminders/subscribe-telegram', token, {
+    method: 'POST',
+    body: JSON.stringify({ chat_id: chatId }),
+  });
+  if (!res.ok) throw new Error('Failed to subscribe to Telegram reminders');
+  return res.json();
+}
+
+export async function subscribeSMS(token: string, phoneNumber: string) {
+  const res = await authFetch('/api/v1/reminders/subscribe-sms', token, {
+    method: 'POST',
+    body: JSON.stringify({ phone_number: phoneNumber }),
+  });
+  if (!res.ok) throw new Error('Failed to subscribe to SMS reminders');
+  return res.json();
+}
+
+export async function unsubscribeReminders(token: string) {
+  const res = await authFetch('/api/v1/reminders/unsubscribe', token, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to unsubscribe from reminders');
+  return res.json();
+}
+

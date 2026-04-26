@@ -25,9 +25,29 @@ ALTER TABLE public.profiles
 ALTER TABLE public.schedule_items
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
--- Add telegram_chat_id to profiles for reminders
+-- 3. Add telegram_chat_id and phone_number to profiles for reminders
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS telegram_chat_id TEXT;
+
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS phone_number TEXT;
+
+-- 4. Add swipe_payment_id for Swipe payments
+ALTER TABLE public.payments
+    ADD COLUMN IF NOT EXISTS swipe_payment_id TEXT UNIQUE;
+
+-- 5. Add unsubscribe_token for reminder opt-out
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS unsubscribe_token TEXT UNIQUE;
+
+-- 6. Create indexes for notification lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_telegram_chat_id
+    ON public.profiles(telegram_chat_id)
+    WHERE telegram_chat_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_profiles_phone_number
+    ON public.profiles(phone_number)
+    WHERE phone_number IS NOT NULL;
 
 -- 3. Auto-update trigger for updated_at
 CREATE OR REPLACE FUNCTION public.handle_updated_at()

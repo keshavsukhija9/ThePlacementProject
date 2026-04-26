@@ -19,40 +19,27 @@ export default function DashboardPage() {
   const setReadiness     = useStore((s) => s.setReadinessScore);
   const schedule         = useStore((s) => s.schedule);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // MOCK DATA FOR TESTING
-      const mockProfile = { college_tier: "Tier-1", is_pro: false };
-      const mockSchedule = {
-        schedule_id: "mock123",
-        items: [
-          { id: "1", day_index: 0, time_slot: "Morning", topic: "Arrays & Strings", difficulty: "easy", resource_url: "https://neetcode.io", status: "completed" },
-          { id: "2", day_index: 0, time_slot: "Evening", topic: "Two Pointers", difficulty: "medium", resource_url: "https://neetcode.io", status: "pending" },
-          { id: "3", day_index: 1, time_slot: "Morning", topic: "Sliding Window", difficulty: "medium", resource_url: "https://neetcode.io", status: "pending" }
-        ]
-      };
-
-      if (!session) {
-        setUser({ id: "mock_user", email: "guest@example.com" } as any);
-        setProfile(mockProfile as any);
-        setSchedule(mockSchedule as any);
-        setStreak(1);
-        setReadinessScore(45);
-        setLoading(false);
-        return;
-      }
-
-      setUser(session.user);
-
       try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          router.replace("/auth");
+          return;
+        }
+
+        setUser(session.user);
+
+        // Fetch profile and schedule in parallel
         const [profile, sched] = await Promise.all([
           getProfile(session.access_token),
           getCurrentSchedule(session.access_token),
         ]);
 
+        // Redirect to onboarding if profile incomplete
         if (!profile?.college_tier) {
           router.replace("/onboarding");
           return;
@@ -60,22 +47,34 @@ export default function DashboardPage() {
 
         setProfile(profile);
 
-        if (sched) {
-          setSchedule(sched);
-          const completed = sched.items.filter((i: any) => i.status === "completed").length;
-          const total     = sched.items.length;
-          const streakDays = new Set(
-            sched.items
-              .filter((i: any) => i.status === "completed")
-              .map((i: any) => i.day_index)
-          ).size;
-          setStreak(streakDays);
-          setReadiness(Math.min(Math.round((completed / Math.max(total, 1)) * 60) + 10 + Math.min(streakDays * 3, 30), 100));
-        } else {
+        // Redirect to onboarding if no schedule
+        if (!sched) {
           router.replace("/onboarding");
           return;
         }
+
+        setSchedule(sched);
+
+        // Calculate streak and readiness
+        const completed = sched.items.filter((i: any) => i.status === "completed").length;
+        const total     = sched.items.length;
+        const streakDays = new Set(
+          sched.items
+            .filter((i: any) => i.status === "completed")
+            .map((i: any) => i.day_index)
+        ).size;
+        
+        setStreak(streakDays);
+        
+        // Readiness formula: 60% completion + 30% streak + 10% base
+        const completionScore = (completed / Math.max(total, 1)) * 60;
+        const streakScore = Math.min(streakDays * 3, 30);
+        const readinessScore = Math.min(Math.round(completionScore + streakScore + 10), 100);
+        setReadiness(readinessScore);
+
       } catch (err: any) {
+        console.error("Dashboard error:", err);
+        setError(err.message || "Failed to load dashboard");
         toast.error(err.message || "Failed to load dashboard");
       } finally {
         setLoading(false);
@@ -87,6 +86,23 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader isDataReady={false} onComplete={() => {}} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-text-primary mb-4">Error Loading Dashboard</h1>
+          <p className="text-text-secondary mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-accent text-white rounded-md hover:opacity-90"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

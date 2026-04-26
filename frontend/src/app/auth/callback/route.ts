@@ -22,13 +22,13 @@ export async function GET(req: NextRequest) {
       // Check if user has a profile — if not, go to onboarding
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const profile = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("college_tier")
           .eq("user_id", session.user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() to handle 404 gracefully
 
-        const hasProfile = !!profile.data?.college_tier;
+        const hasProfile = !!profile?.college_tier;
         const destination = hasProfile ? "/dashboard" : "/onboarding";
         return NextResponse.redirect(`${origin}${destination}`);
       }

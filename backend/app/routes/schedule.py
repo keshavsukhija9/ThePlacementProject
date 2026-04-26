@@ -250,3 +250,199 @@ def get_current_schedule(user: dict = Depends(get_current_user)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/reschedule")
+def reschedule_missed_day(user: dict = Depends(get_current_user)):
+    """
+    Reschedule items from a missed day to next available slots.
+    Preserves streak on missed day toggle.
+    
+    Algorithm:
+    1. Find today's pending items
+    2. Find next available slots (tomorrow onwards)
+    3. Redistribute items to next slots
+    4. Mark today's items as 'skipped' (not 'pending')
+    """
+    try:
+        # Get current active schedule
+        schedule_res = (
+            supabase.table("schedules")
+            .select("id")
+            .eq("user_id", user["id"])
+            .eq("status", "active")
+            .order("generated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if not schedule_res.data:
+            raise HTTPException(status_code=404, detail="No active schedule found")
+        
+        schedule_id = schedule_res.data[0]["id"]
+        today_idx = datetime.now(timezone.utc).weekday()
+        
+        # Get today's pending items
+        today_items_res = (
+            supabase.table("schedule_items")
+            .select("*")
+            .eq("schedule_id", schedule_id)
+            .eq("day_index", today_idx)
+            .eq("status", "pending")
+            .execute()
+        )
+        today_items = today_items_res.data or []
+        
+        if not today_items:
+            return {"status": "ok", "message": "No pending items to reschedule"}
+        
+        # Get all future slots (tomorrow onwards)
+        future_items_res = (
+            supabase.table("schedule_items")
+            .select("*")
+            .eq("schedule_id", schedule_id)
+            .gt("day_index", today_idx)
+            .order("day_index")
+            .order("time_slot")
+            .execute()
+        )
+        future_items = future_items_res.data or []
+        
+        # Find available slots (pending or skipped)
+        available_slots = [
+            item for item in future_items 
+            if item["status"] in ("pending", "skipped")
+        ]
+        
+        # Redistribute today's items to available slots
+        updates = []
+        for i, today_item in enumerate(today_items):
+            if i < len(available_slots):
+                # Move to available slot
+                slot = available_slots[i]
+                updates.append({
+                    "id": today_item["id"],
+                    "status": "skipped"  # Mark original as skipped
+                })
+                updates.append({
+                    "id": slot["id"],
+                    "topic": today_item["topic"],
+                    "difficulty": today_item["difficulty"],
+                    "resource_url": today_item["resource_url"],
+                    "status": "pending"
+                })
+            else:
+                # No available slot, just mark as skipped
+                updates.append({
+                    "id": today_item["id"],
+                    "status": "skipped"
+                })
+        
+        # Apply updates
+        for update in updates:
+            item_id = update.pop("id")
+            supabase.table("schedule_items").update(update).eq("id", item_id).execute()
+        
+        return {
+            "status": "ok",
+            "message": f"Rescheduled {len(today_items)} items",
+            "rescheduled": len([u for u in updates if u.get("status") == "pending"])
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/rescue-mode")
+def activate_rescue_mode(user: dict = Depends(get_current_user)):
+    """
+    Activate 30-day condensed sprint before placement season.
+    Compresses 7-day schedule into 30 days with increased intensity.
+    
+    Algorithm:
+    1. Get current schedule items
+    2. Duplicate items across 30 days
+    3. Increase daily load (3-4 items/day)
+    4. Mark schedule as 'rescued'
+    """
+    try:
+        # Get current active schedule
+        schedule_res = (
+            supabase.table("schedules")
+            .select("id")
+            .eq("user_id", user["id"])
+            .eq("status", "active")
+            .order("generated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if not schedule_res.data:
+            raise HTTPException(status_code=404, detail="No active schedule found")
+        
+        current_schedule_id = schedule_res.data[0]["id"]
+        
+        # Get all items from current schedule
+        items_res = (
+            supabase.table("schedule_items")
+            .select("*")
+            .eq("schedule_id", current_schedule_id)
+            .execute()
+        )
+        items = items_res.data or []
+        
+        if not items:
+            raise HTTPException(status_code=400, detail="No items in current schedule")
+        
+        # Create new rescue schedule
+        rescue_schedule_id = str(uuid.uuid4())
+        supabase.table("schedules").insert(
+            {
+                "id": rescue_schedule_id,
+                "user_id": user["id"],
+                "status": "rescued"
+            }
+        ).execute()
+        
+        # Distribute items across 30 days
+        rescue_items = []
+        item_idx = 0
+        time_slots = ["07:00-08:00", "13:00-14:00", "18:00-19:00", "21:00-22:00"]
+        
+        for day in range(30):
+            for slot_idx in range(3):  # 3 items per day
+                if item_idx >= len(items):
+                    item_idx = 0  # Cycle through items
+                
+                item = items[item_idx]
+                rescue_items.append({
+                    "id": str(uuid.uuid4()),
+                    "schedule_id": rescue_schedule_id,
+                    "day_index": day % 7,  # Cycle through week days
+                    "time_slot": time_slots[slot_idx],
+                    "topic": item["topic"],
+                    "difficulty": item["difficulty"],
+                    "resource_url": item["resource_url"],
+                    "status": "pending"
+                })
+                item_idx += 1
+        
+        # Batch insert rescue items
+        supabase.table("schedule_items").insert(rescue_items).execute()
+        
+        # Mark old schedule as completed
+        supabase.table("schedules").update({"status": "completed"}).eq(
+            "id", current_schedule_id
+        ).execute()
+        
+        return {
+            "status": "ok",
+            "message": "Rescue mode activated",
+            "schedule_id": rescue_schedule_id,
+            "items_count": len(rescue_items)
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
