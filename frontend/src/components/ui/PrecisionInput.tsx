@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { COLORS, SHADOWS, FOCUS, INPUT, RADIUS, EASING, TIMING, TYPOGRAPHY } from "@/lib/design-system";
 
-interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface PrecisionInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   success?: boolean;
@@ -16,7 +16,7 @@ interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   showCharCount?: boolean;
 }
 
-export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
+export const PrecisionInput = forwardRef<HTMLInputElement, PrecisionInputProps>(
   (
     {
       label,
@@ -62,6 +62,19 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
       onBlur?.(e);
     };
 
+    // Focus state with engineered motion
+    const focusStyle = {
+      borderColor: isFocused ? COLORS.primary : hasError ? COLORS.error : isValid ? COLORS.success : COLORS.border,
+      boxShadow: isFocused
+        ? `${SHADOWS.inset}, 0 0 0 1px ${FOCUS.glow}`
+        : hasError
+          ? `${SHADOWS.inset}, 0 0 0 1px rgba(239 68 68 / 0.2)`
+          : isValid
+            ? `${SHADOWS.inset}, 0 0 0 1px rgba(16 185 129 / 0.2)`
+            : SHADOWS.inset,
+      transition: `border-color ${TIMING.snap} ${EASING.lock}, box-shadow ${TIMING.snap} ${EASING.lock}`,
+    };
+
     return (
       <div className="flex flex-col gap-2">
         {label && (
@@ -104,6 +117,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
               lineHeight: TYPOGRAPHY.normal,
               outline: 'none',
               transition: `border-color ${TIMING.snap} ${EASING.lock}, box-shadow ${TIMING.snap} ${EASING.lock}`,
+              disabled: disabled ? 'opacity-50 cursor-not-allowed' : undefined,
             }}
             {...props}
           />
@@ -175,7 +189,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
   }
 );
 
-FormInput.displayName = "FormInput";
+PrecisionInput.displayName = "PrecisionInput";
 
 // Helper for border width
 const BORDER = {

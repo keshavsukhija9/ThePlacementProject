@@ -3,83 +3,120 @@
 @tailwind utilities;
 
 /* ============================================================
-   FRICTION SYSTEM — tune everything from here
+   ZERO-DEFAULT DESIGN SYSTEM
+   Strict policy: No native browser styling. Every pixel engineered.
    ============================================================ */
 :root {
-  /* Timing */
-  --t-lock:     20ms; /* Hard pop-in stagger unit */
-  --t-snap:     80ms; /* Button press → settle */
-  --t-travel:   50ms; /* Border stays "stuck" after release */
-  --t-needle:  400ms; /* Gauge needle swing */
-  --t-flicker: 3200ms; /* Flame distortion period */
-  --t-scanline: 6s;   /* Rescue mode scan period */
+  /* Grid system - 4px base, 8px vertical rhythm */
+  --grid-base: 4px;
+  --grid-rhythm: 8px;
 
-  /* Easing — mechaniCAL, not smooth */
-  --ease-lock:   cubic-bezier(0.23, 1, 0.32, 1);   /* Heavy then snap */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* Slight overshoot */
-  --ease-hard:   cubic-bezier(0.16, 1, 0.3, 1);    /* Pure decelerate */
+  /* Timing - mechanical feel */
+  --t-lock: 20ms;
+  --t-snap: 80ms;
+  --t-travel: 50ms;
+  --t-needle: 400ms;
+  --t-flicker: 3200ms;
+  --t-scanline: 6s;
 
-  /* Colors — orange system */
-  --c-bg:       #09090d;
-  --c-surface:  #0f0f14;
+  /* Easing - engineered curves, NO ease-in-out */
+  --ease-lock: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-fast: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-hard: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Colors - orange system */
+  --c-bg: #09090d;
+  --c-surface: #0f0f14;
   --c-surface2: #151519;
   --c-surface3: #1c1c22;
-  --c-border:   rgba(255 255 255 / 0.08);
+  --c-border: rgba(255 255 255 / 0.08);
   --c-border-hi: rgba(255 255 255 / 0.14);
-  --c-accent:   #f97316;  /* Primary orange */
-  --c-accent-hi: #fb923c;
-  --c-warn:     #f59e0b;  /* Rescue mode */
-  --c-success:  #10b981;
-  --c-error:    #ef4444;
-  --c-txt:      #e2e1ec;
-  --c-txt-dim:  #6b6b80;
-  --c-txt-faint:#32323e;
+  --c-primary: #f97316;
+  --c-primary-hi: #fb923c;
+  --c-warn: #f59e0b;
+  --c-success: #10b981;
+  --c-error: #ef4444;
+  --c-txt: #e2e1ec;
+  --c-txt-dim: #6b6b80;
+  --c-txt-faint: #32323e;
 
-  /* Sharp shadow layers (0 blur — mechanical elevation) */
-  --shadow-1:
-    1px 1px 0 rgba(0 0 0 / 0.9),
-    2px 2px 0 rgba(0 0 0 / 0.6);
-  --shadow-2:
-    1px 1px 0 rgba(0 0 0 / 0.95),
-    2px 2px 0 rgba(0 0 0 / 0.7),
-    4px 4px 0 rgba(0 0 0 / 0.4);
-  --shadow-accent:
-    1px 1px 0 var(--c-accent),
-    2px 2px 0 rgba(249 115 22 / 0.3);
+  /* Focus state */
+  --c-focus-ring: rgba(249 115 22 / 0.2);
 
-  /* Monospace */
+  /* Shadows - mechanical, 0 blur */
+  --shadow-1: 1px 1px 0 rgba(0 0 0 / 0.9), 2px 2px 0 rgba(0 0 0 / 0.6);
+  --shadow-2: 1px 1px 0 rgba(0 0 0 / 0.95), 2px 2px 0 rgba(0 0 0 / 0.7), 4px 4px 0 rgba(0 0 0 / 0.4);
+  --shadow-accent: 1px 1px 0 var(--c-primary), 2px 2px 0 rgba(249 115 22 / 0.3);
+  --shadow-inset: inset 1px 1px 0 rgba(0 0 0 / 0.4);
+
+  /* Typography */
   --font-mono: var(--font-jetbrains, 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace);
 
   /* Grain intensity */
   --grain-opacity: 0.022;
 
-  /* Active press offset */
+  /* Press offset */
   --press-x: 1px;
   --press-y: 1px;
 
-  /* Card stagger increments */
-  --stagger-unit: 20ms;
+  /* Border width - 1px controlled stroke */
+  --border-width: 0.5px;
 }
 
-/* ── Reset & Base ─────────────────────────────────────────── */
+/* ============================================================
+   RESET - Zero default, no native styling
+   ============================================================ */
 @layer base {
-  *, *::before, *::after { box-sizing: border-box; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-  html { color-scheme: dark; }
+  html {
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
   body {
     background: var(--c-bg);
     color: var(--c-txt);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.5;
     overflow-x: hidden;
   }
 
-  /* Mono class — numbers, dates, codes */
+  /* Remove all native button styling */
+  button, [type="button"], [type="reset"], [type="submit"] {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  /* Remove all native input styling */
+  input, select, textarea {
+    all: unset;
+    display: block;
+    width: 100%;
+    font-family: var(--font-mono);
+  }
+
+  /* Mono class */
   .mono, code, kbd, time, [data-mono] {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-feature-settings: "calt" 1, "ss01" 1;
+  }
+
+  /* Focus visible - engineered motion */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 1px var(--c-focus-ring);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -93,8 +130,9 @@
   }
 }
 
-/* ── CRT Noise Overlay ────────────────────────────────────── */
-/* Fixed pseudo-noise using SVG filter — no image required    */
+/* ============================================================
+   CRT NOISE OVERLAY
+   ============================================================ */
 body::before {
   content: '';
   position: fixed;
@@ -107,110 +145,175 @@ body::before {
   background-size: 192px 192px;
 }
 
-/* ── Sub-pixel Borders → use box-shadow trick ─────────────── */
+/* ============================================================
+   PRECISION PRIMITIVES
+   ============================================================ */
 @layer components {
-
-  /* Mechanical card */
-  .card-mech {
+  /* ── Precision Card ────────────────────────────────────────── */
+  .card {
     background: var(--c-surface);
-    border: 0.5px solid var(--c-border);
-    border-radius: 4px;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: 3px;
     box-shadow: var(--shadow-1);
     transition:
       border-color var(--t-snap) var(--ease-hard),
-      box-shadow   var(--t-snap) var(--ease-hard);
+      box-shadow var(--t-snap) var(--ease-hard);
   }
-  .card-mech:hover {
+  .card:hover {
     border-color: var(--c-border-hi);
     box-shadow: var(--shadow-2);
   }
 
-  /* Hard-snap button */
-  .btn-mech {
-    position: relative;
+  /* ── Precision Button ──────────────────────────────────────── */
+  .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 20px;
-    background: var(--c-accent);
+    padding: 10px 12px;
+    background: var(--c-primary);
     color: #fff;
     font-family: var(--font-mono);
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    border: 0.5px solid rgba(255 255 255 / 0.15);
-    border-radius: 3px;
+    border: var(--border-width) solid rgba(255 255 255 / 0.15);
+    border-radius: 2px;
     box-shadow: var(--shadow-accent);
     cursor: pointer;
     outline: none;
     transition:
-      transform       var(--t-snap) var(--ease-lock),
-      box-shadow      var(--t-snap) var(--ease-lock),
-      border-color    var(--t-travel) step-end;      /* border stays "stuck" */
+      transform var(--t-snap) var(--ease-lock),
+      box-shadow var(--t-snap) var(--ease-lock),
+      border-color var(--t-travel) step-end;
     -webkit-user-select: none;
     user-select: none;
   }
-  .btn-mech:hover { opacity: 0.92; }
-  .btn-mech:active {
+  .btn:hover { opacity: 0.92; }
+  .btn:active {
     transform: translate(var(--press-x), var(--press-y));
     box-shadow: none;
-    border-color: var(--c-accent-hi);
+    border-color: var(--c-primary-hi);
   }
-  /* Disabled */
-  .btn-mech:disabled {
+  .btn:disabled {
     opacity: 0.4;
     pointer-events: none;
   }
+  .btn:focus-visible {
+    box-shadow: var(--shadow-accent), 0 0 0 1px var(--c-focus-ring);
+    transform: scale(1.02);
+    transition: box-shadow var(--t-snap) var(--ease-fast), transform var(--t-snap) var(--ease-fast);
+  }
 
-  /* Ghost/outline variant */
-  .btn-mech-ghost {
+  /* ── Ghost Button ──────────────────────────────────────────── */
+  .btn-ghost {
     background: transparent;
     color: var(--c-txt-dim);
-    border: 0.5px solid var(--c-border);
+    border: var(--border-width) solid var(--c-border);
     box-shadow: var(--shadow-1);
     font-family: var(--font-mono);
     font-size: 12px;
-    padding: 8px 14px;
-    border-radius: 3px;
+    padding: 8px 10px;
+    border-radius: 2px;
     transition:
-      color        var(--t-snap) var(--ease-hard),
+      color var(--t-snap) var(--ease-hard),
       border-color var(--t-snap) var(--ease-hard),
-      transform    var(--t-snap) var(--ease-lock);
+      transform var(--t-snap) var(--ease-lock);
     cursor: pointer;
   }
-  .btn-mech-ghost:hover {
+  .btn-ghost:hover {
     color: var(--c-txt);
     border-color: var(--c-border-hi);
   }
-  .btn-mech-ghost:active {
+  .btn-ghost:active {
     transform: translate(var(--press-x), var(--press-y));
   }
+  .btn-ghost:focus-visible {
+    box-shadow: var(--shadow-1), 0 0 0 1px var(--c-focus-ring);
+    transform: scale(1.02);
+    transition: box-shadow var(--t-snap) var(--ease-fast), transform var(--t-snap) var(--ease-fast);
+  }
 
-  /* Mechanical input */
-  .input-mech {
+  /* ── Precision Input ───────────────────────────────────────── */
+  .input {
     width: 100%;
+    height: 40px;
+    padding: 0 12px;
     background: var(--c-surface2);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: 2px;
+    box-shadow: var(--shadow-inset);
     color: var(--c-txt);
     font-family: var(--font-mono);
-    font-size: 13px;
-    border: 0.5px solid var(--c-border);
-    border-radius: 3px;
-    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
     outline: none;
-    box-shadow: inset 1px 1px 0 rgba(0 0 0 / 0.4);
     transition:
-      border-color var(--t-snap) var(--ease-hard),
-      box-shadow   var(--t-snap) var(--ease-hard);
+      border-color var(--t-snap) var(--ease-lock),
+      box-shadow var(--t-snap) var(--ease-lock);
   }
-  .input-mech::placeholder { color: var(--c-txt-faint); }
-  .input-mech:focus {
-    border-color: var(--c-accent);
-    box-shadow: inset 1px 1px 0 rgba(0 0 0 / 0.4), 0 0 0 1px rgba(249 115 22 / 0.2);
+  .input::placeholder { color: var(--c-txt-faint); }
+  .input:focus {
+    border-color: var(--c-primary);
+    box-shadow: var(--shadow-inset), 0 0 0 1px var(--c-focus-ring);
+  }
+  .input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .input.error {
+    border-color: var(--c-error);
+    box-shadow: var(--shadow-inset), 0 0 0 1px rgba(239 68 68 / 0.2);
+  }
+  .input.success {
+    border-color: var(--c-success);
+    box-shadow: var(--shadow-inset), 0 0 0 1px rgba(16 185 129 / 0.2);
   }
 
-  /* Label — monospace headers */
-  .label-mech {
+  /* ── Precision Select ──────────────────────────────────────── */
+  .select {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    padding-right: 36px;
+    background: var(--c-surface2);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: 2px;
+    box-shadow: var(--shadow-inset);
+    color: var(--c-txt);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+    outline: none;
+    appearance: none;
+    transition:
+      border-color var(--t-snap) var(--ease-lock),
+      box-shadow var(--t-snap) var(--ease-lock);
+    cursor: pointer;
+  }
+  .select:focus {
+    border-color: var(--c-primary);
+    box-shadow: var(--shadow-inset), 0 0 0 1px var(--c-focus-ring);
+  }
+  .select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .select.error {
+    border-color: var(--c-error);
+    box-shadow: var(--shadow-inset), 0 0 0 1px rgba(239 68 68 / 0.2);
+  }
+  .select.success {
+    border-color: var(--c-success);
+    box-shadow: var(--shadow-inset), 0 0 0 1px rgba(16 185 129 / 0.2);
+  }
+
+  /* ── Label ─────────────────────────────────────────────────── */
+  .label {
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 600;
@@ -219,241 +322,214 @@ body::before {
     color: var(--c-txt-dim);
   }
 
-  /* Hard lock-in animation — components "click" into place */
+  /* ── Text sizes ────────────────────────────────────────────── */
+  .text-h1 {
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .text-h2 {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  .text-body {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+  .text-small {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+  .text-micro {
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+
+  /* ── Colors ────────────────────────────────────────────────── */
+  .text-primary { color: var(--c-primary); }
+  .text-warn { color: var(--c-warn); }
+  .text-success { color: var(--c-success); }
+  .text-error { color: var(--c-error); }
+  .text-on-surface { color: var(--c-txt); }
+  .text-on-surface-variant { color: var(--c-txt-dim); }
+
+  /* ── Backgrounds ──────────────────────────────────────────── */
+  .bg-surface { background: var(--c-surface); }
+  .bg-surface2 { background: var(--c-surface2); }
+  .bg-surface3 { background: var(--c-surface3); }
+
+  /* ── Borders ──────────────────────────────────────────────── */
+  .border-border { border-color: var(--c-border); }
+  .border-border-hi { border-color: var(--c-border-hi); }
+  .border-primary { border-color: var(--c-primary); }
+  .border-warn { border-color: var(--c-warn); }
+  .border-success { border-color: var(--c-success); }
+  .border-error { border-color: var(--c-error); }
+
+  /* ── Radius ────────────────────────────────────────────────── */
+  .rounded-sm { border-radius: 2px; }
+  .rounded-md { border-radius: 3px; }
+  .rounded-lg { border-radius: 4px; }
+
+  /* ── Lock-in animation ────────────────────────────────────── */
   .lock-in {
     animation: lockIn var(--t-snap) var(--ease-lock) both;
   }
   @keyframes lockIn {
-    0%  { opacity: 0; transform: translateY(6px) scale(0.98); }
-    100%{ opacity: 1; transform: translateY(0)   scale(1); }
+    0% { opacity: 0; transform: translateY(6px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  /* ── Rescue Mode State ──────────────────────────────────── */
-  [data-rescue="true"] {
-    --c-accent:    var(--c-warn);
-    --c-accent-hi: #fbbf24;
-  }
-  [data-rescue="true"] .rescue-scanline::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent               0px,
-      transparent               3px,
-      rgba(245 158 11 / 0.03)   3px,
-      rgba(245 158 11 / 0.03)   4px
-    );
-    animation: scanMove var(--t-scanline) linear infinite;
-  }
-  @keyframes scanMove {
-    0%   { background-position: 0 0; }
-    100% { background-position: 0 100vh; }
+  /* ── Focus glow ────────────────────────────────────────────── */
+  .focus-glow {
+    box-shadow: 0 0 0 1px var(--c-focus-ring);
+    transition: box-shadow var(--t-snap) var(--ease-fast);
   }
 
-  /* ── Flame Flicker ──────────────────────────────────────── */
-  .flame-path-1 { animation: flicker1 var(--t-flicker) ease-in-out infinite; }
-  .flame-path-2 { animation: flicker2 calc(var(--t-flicker) * 0.7) ease-in-out infinite 200ms; }
-  .flame-tip    { animation: flickerTip calc(var(--t-flicker) * 0.5) ease-in-out infinite 100ms; }
-
-  @keyframes flicker1 {
-    0%,100% { d: path("M12 2 C8 6 6 10 9 14 C10.5 16 10 18 12 20 C14 18 13.5 16 15 14 C18 10 16 6 12 2Z"); }
-    33%     { d: path("M12 2 C7 7 5.5 11 9 14.5 C10.5 16.5 10 18 12 20 C14 18 13.5 16 15 14.5 C18.5 11 17 7 12 2Z"); }
-    66%     { d: path("M12 2 C9 5 6.5 9.5 9.5 13.5 C11 16 10.5 18 12 20 C13.5 18 13 16 14.5 13.5 C17.5 9.5 15 5 12 2Z"); }
+  /* ── Scale micro-feedback ──────────────────────────────────── */
+  .scale-feedback {
+    transition: transform var(--t-snap) var(--ease-fast);
   }
-  @keyframes flicker2 {
-    0%,100% { transform: scaleX(1)   scaleY(1);    opacity: 0.7; }
-    50%     { transform: scaleX(0.93) scaleY(1.04); opacity: 0.85; }
+  .scale-feedback:focus-within {
+    transform: scale(1.02);
   }
-  @keyframes flickerTip {
-    0%,100% { transform: translateY(0);   }
-    50%     { transform: translateY(-1px); }
-  }
-
-  /* ── Gauge needle jitter ──────────────────────────────────  */
-  @keyframes needleJitter {
-    0%,100%{ transform: rotate(var(--angle)) translateX(-50%) rotate(0deg); }
-    80%    { transform: rotate(var(--angle)) translateX(-50%) rotate(0deg); }
-    85%    { transform: rotate(calc(var(--angle) + 1.5deg)) translateX(-50%) rotate(0deg); }
-    90%    { transform: rotate(calc(var(--angle) - 1deg)) translateX(-50%) rotate(0deg); }
-    95%    { transform: rotate(calc(var(--angle) + 0.7deg)) translateX(-50%) rotate(0deg); }
-  }
-
-  /* ── Magnetic header ──────────────────────────────────────  */
-  .magnetic { display: inline-block; will-change: transform; }
-
-  /* ── Task card complete flash ─────────────────────────────  */
-  @keyframes completePop {
-    0%  { box-shadow: var(--shadow-1); }
-    30% { box-shadow: 0 0 0 1px var(--c-success), var(--shadow-accent); }
-    100%{ box-shadow: var(--shadow-1); }
-  }
-  .complete-flash { animation: completePop 350ms var(--ease-lock) forwards; }
 }
 
+/* ============================================================
+   RESCUE MODE STATE
+   ============================================================ */
+[data-rescue="true"] {
+  --c-primary: var(--c-warn);
+  --c-primary-hi: #fbbf24;
+}
+[data-rescue="true"] .rescue-scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(245 158 11 / 0.03) 3px,
+    rgba(245 158 11 / 0.03) 4px
+  );
+  animation: scanMove var(--t-scanline) linear infinite;
+}
+@keyframes scanMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
 
-/* ── Mobile Responsiveness ──────────────────────────────────── */
+/* ============================================================
+   FLAME FLICKER
+   ============================================================ */
+.flame-path-1 { animation: flicker1 var(--t-flicker) ease-in-out infinite; }
+.flame-path-2 { animation: flicker2 calc(var(--t-flicker) * 0.7) ease-in-out infinite 200ms; }
+.flame-tip { animation: flickerTip calc(var(--t-flicker) * 0.5) ease-in-out infinite 100ms; }
+
+@keyframes flicker1 {
+  0%,100% { d: path("M12 2 C8 6 6 10 9 14 C10.5 16 10 18 12 20 C14 18 13.5 16 15 14 C18 10 16 6 12 2Z"); }
+  33% { d: path("M12 2 C7 7 5.5 11 9 14.5 C10.5 16.5 10 18 12 20 C14 18 13.5 16 15 14.5 C18.5 11 17 7 12 2Z"); }
+  66% { d: path("M12 2 C9 5 6.5 9.5 9.5 13.5 C11 16 10.5 18 12 20 C13.5 18 13 16 14.5 13.5 C17.5 9.5 15 5 12 2Z"); }
+}
+@keyframes flicker2 {
+  0%,100% { transform: scaleX(1) scaleY(1); opacity: 0.7; }
+  50% { transform: scaleX(0.93) scaleY(1.04); opacity: 0.85; }
+}
+@keyframes flickerTip {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+/* ============================================================
+   GAUGE NEEDLE JITTER
+   ============================================================ */
+@keyframes needleJitter {
+  0%,100% { transform: rotate(var(--angle)) translateX(-50%) rotate(0deg); }
+  80% { transform: rotate(var(--angle)) translateX(-50%) rotate(0deg); }
+  85% { transform: rotate(calc(var(--angle) + 1.5deg)) translateX(-50%) rotate(0deg); }
+  90% { transform: rotate(calc(var(--angle) - 1deg)) translateX(-50%) rotate(0deg); }
+  95% { transform: rotate(calc(var(--angle) + 0.7deg)) translateX(-50%) rotate(0deg); }
+}
+
+/* ============================================================
+   TASK CARD COMPLETE FLASH
+   ============================================================ */
+@keyframes completePop {
+  0% { box-shadow: var(--shadow-1); }
+  30% { box-shadow: 0 0 0 1px var(--c-success), var(--shadow-accent); }
+  100% { box-shadow: var(--shadow-1); }
+}
+.complete-flash { animation: completePop 350ms var(--ease-lock) forwards; }
+
+/* ============================================================
+   MOBILE RESPONSIVENESS
+   ============================================================ */
 @media (max-width: 768px) {
   :root {
-    --t-lock:     15ms;
-    --t-snap:     60ms;
+    --t-lock: 15ms;
+    --t-snap: 60ms;
   }
 
-  body {
-    font-size: 14px;
-  }
+  body { font-size: 14px; }
 
-  /* Larger touch targets on mobile */
-  .btn-mech,
-  .btn-mech-ghost,
-  button,
-  input,
-  select,
-  textarea {
+  .btn, .btn-ghost, button, input, select, textarea {
     min-height: 44px;
     min-width: 44px;
   }
 
-  /* Reduce padding on mobile */
-  .card-mech {
-    border-radius: 3px;
-  }
-
-  /* Stack grid layouts on mobile */
-  [style*="grid-template-columns"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Improve readability on small screens */
   .text-h1 { font-size: 20px; }
   .text-h2 { font-size: 18px; }
   .text-body { font-size: 14px; }
   .text-small { font-size: 12px; }
 
-  /* Mobile-friendly header */
-  header {
-    padding: 0 12px !important;
-    height: 56px !important;
-  }
-
-  /* Hide desktop-only elements */
-  .hidden.md\:block {
-    display: none !important;
-  }
-
-  /* Improve form spacing */
-  input,
-  select,
-  textarea {
-    font-size: 16px; /* Prevents zoom on iOS */
-  }
-
-  /* Better button spacing */
-  .btn-mech,
-  .btn-mech-ghost {
-    padding: 12px 16px;
-    font-size: 12px;
-  }
-
-  /* Responsive grid for dashboard */
-  [style*="grid-template-columns: repeat(7"] {
-    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)) !important;
-  }
-
-  /* Improve card padding */
-  .card {
-    padding: 12px !important;
-  }
-
-  /* Reduce main padding */
-  main {
-    padding: 60px 12px 60px !important;
-  }
+  .card { border-radius: 3px; }
 }
 
 @media (max-width: 480px) {
   :root {
-    --t-lock:     10ms;
-    --t-snap:     50ms;
+    --t-lock: 10ms;
+    --t-snap: 50ms;
   }
 
-  /* Extra small adjustments */
   .text-h1 { font-size: 18px; }
   .text-h2 { font-size: 16px; }
 
-  /* Stack everything on very small screens */
-  .flex-col.lg\:grid {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  /* Reduce gaps */
-  [style*="gap"] {
-    gap: 8px !important;
-  }
-
-  /* Full width buttons */
-  .btn-mech,
-  .btn-mech-ghost,
-  button {
-    width: 100%;
-  }
-
-  /* Improve modal/card sizing */
-  .card {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  /* Reduce header complexity */
-  header .hidden {
-    display: none !important;
-  }
-
-  /* Better spacing for forms */
-  .space-y-4 {
-    gap: 12px !important;
-  }
-
-  .space-y-6 {
-    gap: 16px !important;
-  }
+  .btn, .btn-ghost, button { width: 100%; }
+  .card { max-width: 100%; margin: 0 auto; }
 }
 
-/* ── Accessibility Improvements ──────────────────────────────── */
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
 @media (prefers-contrast: more) {
   :root {
     --c-border: rgba(255 255 255 / 0.15);
     --c-border-hi: rgba(255 255 255 / 0.25);
   }
 
-  .btn-mech {
-    border-width: 1px;
-  }
-
-  .card-mech {
-    border-width: 1px;
-  }
+  .btn { border-width: 1px; }
+  .card { border-width: 1px; }
 }
 
 /* Focus visible for keyboard navigation */
 :focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--c-focus-ring);
 }
 
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 2px;
-}
-
-/* Reduce motion for users who prefer it */
+/* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -462,22 +538,13 @@ a:focus-visible {
   }
 }
 
-/* High contrast mode support */
+/* High contrast mode */
 @media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-  }
+  :root { color-scheme: dark; }
 }
 
 /* Print styles */
 @media print {
-  body::before {
-    display: none;
-  }
-
-  .btn-mech,
-  .btn-mech-ghost,
-  button {
-    border: 1px solid #000;
-  }
+  body::before { display: none; }
+  .btn, .btn-ghost, button { border: 1px solid #000; }
 }

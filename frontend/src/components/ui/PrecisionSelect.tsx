@@ -1,33 +1,28 @@
 "use client";
 
-import { forwardRef, InputHTMLAttributes, useState } from "react";
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { forwardRef, SelectHTMLAttributes, useState } from "react";
+import { AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { COLORS, SHADOWS, FOCUS, INPUT, RADIUS, EASING, TIMING, TYPOGRAPHY } from "@/lib/design-system";
 
-interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface PrecisionSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   success?: boolean;
   hint?: string;
-  icon?: React.ReactNode;
-  showPasswordToggle?: boolean;
-  maxLength?: number;
-  showCharCount?: boolean;
+  options: Array<{ value: string; label: string }>;
+  placeholder?: string;
 }
 
-export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
+export const PrecisionSelect = forwardRef<HTMLSelectElement, PrecisionSelectProps>(
   (
     {
       label,
       error,
       success,
       hint,
-      icon,
-      showPasswordToggle,
-      maxLength,
-      showCharCount,
-      type = "text",
+      options,
+      placeholder,
       disabled,
       value,
       onChange,
@@ -37,29 +32,31 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
     },
     ref
   ) => {
-    const [showPassword, setShowPassword] = useState(false);
-    const [charCount, setCharCount] = useState(0);
     const [isFocused, setIsFocused] = useState(false);
-
-    const inputType = showPasswordToggle && showPassword ? "text" : type;
     const hasError = !!error;
     const isValid = success && !hasError;
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (showCharCount) {
-        setCharCount(e.target.value.length);
-      }
-      onChange?.(e);
-    };
-
-    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleFocus = (e: React.FocusEvent<HTMLSelectElement>) => {
       setIsFocused(true);
       onFocus?.(e);
     };
 
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleBlur = (e: React.FocusEvent<HTMLSelectElement>) => {
       setIsFocused(false);
       onBlur?.(e);
+    };
+
+    // Focus state with engineered motion
+    const focusStyle = {
+      borderColor: isFocused ? COLORS.primary : hasError ? COLORS.error : isValid ? COLORS.success : COLORS.border,
+      boxShadow: isFocused
+        ? `${SHADOWS.inset}, 0 0 0 1px ${FOCUS.glow}`
+        : hasError
+          ? `${SHADOWS.inset}, 0 0 0 1px rgba(239 68 68 / 0.2)`
+          : isValid
+            ? `${SHADOWS.inset}, 0 0 0 1px rgba(16 185 129 / 0.2)`
+            : SHADOWS.inset,
+      transition: `border-color ${TIMING.snap} ${EASING.lock}, box-shadow ${TIMING.snap} ${EASING.lock}`,
     };
 
     return (
@@ -72,26 +69,18 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
         )}
 
         <div className="relative">
-          {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: COLORS.txtDim }}>
-              {icon}
-            </div>
-          )}
-
-          <input
+          <select
             ref={ref}
-            type={inputType}
             value={value}
-            onChange={handleChange}
+            onChange={onChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
             disabled={disabled}
-            maxLength={maxLength}
             style={{
               width: '100%',
               height: INPUT.height,
               padding: `0 ${INPUT.padding.horizontal}px`,
-              paddingLeft: icon ? INPUT.padding.horizontal + 24 : INPUT.padding.horizontal,
+              paddingRight: INPUT.padding.horizontal + 24,
               background: COLORS.surface2,
               border: `${BORDER.width} ${BORDER.style} ${hasError ? COLORS.error : isValid ? COLORS.success : COLORS.border}`,
               borderRadius: RADIUS.sm,
@@ -104,31 +93,34 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
               lineHeight: TYPOGRAPHY.normal,
               outline: 'none',
               transition: `border-color ${TIMING.snap} ${EASING.lock}, box-shadow ${TIMING.snap} ${EASING.lock}`,
+              appearance: 'none',
+              cursor: disabled ? 'not-allowed' : 'pointer',
             }}
             {...props}
-          />
+          >
+            {placeholder && (
+              <option value="" disabled>
+                {placeholder}
+              </option>
+            )}
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
 
-          {showPasswordToggle && type === "password" && (
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-              tabIndex={-1}
-              style={{ color: COLORS.txtDim, cursor: 'pointer' }}
-            >
-              {showPassword ? (
-                <EyeOff size={16} strokeWidth={1.5} />
-              ) : (
-                <Eye size={16} strokeWidth={1.5} />
-              )}
-            </button>
-          )}
+          <ChevronDown
+            size={16}
+            className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ color: COLORS.txtDim, strokeWidth: 1.5 }}
+          />
 
           {isValid && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              className="absolute right-9 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: COLORS.success }}
             >
               <CheckCircle2 size={16} strokeWidth={2} />
@@ -139,7 +131,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              className="absolute right-9 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: COLORS.error }}
             >
               <AlertCircle size={16} strokeWidth={2} />
@@ -164,18 +156,12 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
             {hint}
           </p>
         )}
-
-        {showCharCount && maxLength && (
-          <p className="text-mono" style={{ color: COLORS.txtDim, fontSize: TYPOGRAPHY.micro, textAlign: 'right' }}>
-            {charCount} / {maxLength}
-          </p>
-        )}
       </div>
     );
   }
 );
 
-FormInput.displayName = "FormInput";
+PrecisionSelect.displayName = "PrecisionSelect";
 
 // Helper for border width
 const BORDER = {
